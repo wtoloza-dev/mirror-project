@@ -6,8 +6,8 @@
 |-----------|-------|-------|
 | Microcontroller | ESP32-WROOM | Overkill for this project, but works great |
 | Proximity Sensor | AJ-SR04M | Waterproof ultrasonic sensor, ideal for bathrooms |
-| LED Strip | TBD | |
-| Power Supply | TBD | |
+| LED Strip | 12VDC 4W Yellow IP65 | No controller yet, needs MOSFET or relay |
+| Power Supply | TBD | 12V for LED strip |
 
 ### AJ-SR04M Specifications
 
