@@ -60,12 +60,12 @@ For the most basic setup without Wi-Fi:
 ## Wiring Diagram
 
 ```
-ESP32/ESP8266          AJ-SR04M
------------            --------
-3.3V  ────────────────  VCC
+ESP32                  AJ-SR04M
+-----                  --------
+5V (VIN) ─────────────  VCC
 GND   ────────────────  GND
-GPIO5 ────────────────  TRIG
-GPIO4 ────────────────  ECHO
+GPIO13 ───────────────  TRIG
+GPIO12 ───────────────  ECHO
 
 ESP32/ESP8266          LED Strip (WS2812B)
 -----------            -------------------

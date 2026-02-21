@@ -7,8 +7,8 @@ from machine import Pin, time_pulse_us
 from time import sleep, sleep_us
 
 
-TRIGGER_PIN = 5
-ECHO_PIN = 4
+TRIGGER_PIN = 13
+ECHO_PIN = 12
 LED_PIN = 2
 DISTANCE_THRESHOLD_CM = 50
 TIMEOUT_US = 30000
