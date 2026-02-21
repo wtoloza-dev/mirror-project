@@ -16,5 +16,6 @@ upload = "scripts.upload:main"
 
 [dependency-groups]
 dev = [
+    "pytest>=9.0.2",
     "ruff>=0.11.0",
 ]

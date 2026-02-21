@@ -32,5 +32,5 @@ class TimingConfig:
 class PowerConfig:
     """Power management settings."""
 
-    USE_LIGHT_SLEEP: bool = False  # Set True for production
+    USE_LIGHT_SLEEP: bool = True  # Saves ~60% power, disables REPL
     SLEEP_DURATION_MS: int = 150
