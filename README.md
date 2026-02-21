@@ -27,7 +27,7 @@ Contactless bathroom mirror light system using ESP32 and MicroPython. Lights tur
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/yourusername/mirror-project.git
+git clone https://github.com/wtoloza-dev/mirror-project.git
 cd mirror-project
 ```
 
