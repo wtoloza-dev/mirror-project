@@ -1,8 +1,8 @@
 """
 Mirror light controller with proximity sensor.
 
-Turns on LED when presence is detected. Stays on while present,
-turns off after timeout when no presence detected.
+Turns on LED after sustained presence is detected.
+Stays on while present, turns off after timeout.
 """
 from machine import Pin, time_pulse_us
 from time import sleep, sleep_us, ticks_ms, ticks_diff
@@ -12,7 +12,8 @@ TRIGGER_PIN = 13
 ECHO_PIN = 12
 LED_PIN = 2
 
-MAX_DISTANCE_CM = 80
+MAX_DISTANCE_CM = 30
+ACTIVATION_SECONDS = 1.5
 TIMEOUT_SECONDS = 5
 
 
@@ -58,30 +59,45 @@ def is_presence_detected(distance: float) -> bool:
 
 def run() -> None:
     """
-    Main loop: monitor proximity and control LED with timeout.
+    Main loop: monitor proximity and control LED with activation delay and timeout.
     """
     led = Pin(LED_PIN, Pin.OUT)
     led.off()
 
+    presence_start_time = 0
     last_presence_time = 0
     light_on = False
-    timeout_ms = TIMEOUT_SECONDS * 1000
+    presence_active = False
+
+    activation_ms = int(ACTIVATION_SECONDS * 1000)
+    timeout_ms = int(TIMEOUT_SECONDS * 1000)
 
     print(f"Mirror light ready")
     print(f"  Detection: <{MAX_DISTANCE_CM}cm")
+    print(f"  Activation: {ACTIVATION_SECONDS}s")
     print(f"  Timeout: {TIMEOUT_SECONDS}s")
 
     while True:
         distance = measure_distance()
         current_time = ticks_ms()
+        presence = is_presence_detected(distance)
 
-        if is_presence_detected(distance):
+        if presence:
             last_presence_time = current_time
-            if not light_on:
+
+            if not presence_active:
+                presence_start_time = current_time
+                presence_active = True
+
+            presence_duration = ticks_diff(current_time, presence_start_time)
+
+            if not light_on and presence_duration >= activation_ms:
                 led.on()
                 light_on = True
-                print(f"Light ON - presence at {distance:.0f}cm")
+                print(f"Light ON - presence at {distance:.0f}cm for {ACTIVATION_SECONDS}s")
         else:
+            presence_active = False
+
             if light_on:
                 elapsed = ticks_diff(current_time, last_presence_time)
                 if elapsed > timeout_ms:
