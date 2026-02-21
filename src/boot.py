@@ -1,8 +1,20 @@
 """
 MicroPython boot configuration.
 
-This file is executed on every boot (including wake-boot from deepsleep).
+Runs before main.py on every boot.
 """
 import gc
 
-gc.collect()
+
+def setup() -> None:
+    """Perform boot-time initialization."""
+    gc.collect()
+    _disable_debug_output()
+
+
+def _disable_debug_output() -> None:
+    """Disable REPL on UART0 if needed for production."""
+    pass
+
+
+setup()
