@@ -1,0 +1,101 @@
+# ESPHome configuration for Mirror Light Controller
+# 
+# This is equivalent to the MicroPython version in src/
+# but uses ESPHome's declarative YAML approach.
+#
+# Hardware: ESP32-C3 Super Mini + VL53L0X sensor
+# 
+# Install: https://esphome.io/guides/installing_esphome.html
+
+esphome:
+  name: mirror-light
+  friendly_name: "Mirror Light"
+
+esp32:
+  board: esp32-c3-devkitm-1
+  framework:
+    type: arduino
+
+# WiFi configuration
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  
+  # Fallback hotspot if WiFi fails
+  ap:
+    ssid: "Mirror-Light-Fallback"
+    password: "mirror123"
+
+# Enable logging
+logger:
+  level: INFO
+
+# Enable Home Assistant API
+api:
+  encryption:
+    key: !secret api_key
+
+# Enable OTA updates
+ota:
+  platform: esphome
+  password: !secret ota_password
+
+# I2C bus for VL53L0X sensor
+i2c:
+  sda: 8
+  scl: 9
+  scan: true
+
+# Distance sensor
+sensor:
+  - platform: vl53l0x
+    name: "Distance"
+    id: distance_sensor
+    address: 0x29
+    update_interval: 150ms
+    long_range: false
+    filters:
+      - filter_out: nan
+      - median:
+          window_size: 5
+          send_every: 1
+
+# LED output (GPIO4 on ESP32-C3)
+output:
+  - platform: gpio
+    pin: 4
+    id: led_output
+
+# Light entity for Home Assistant
+light:
+  - platform: binary
+    name: "Mirror Light"
+    id: mirror_light
+    output: led_output
+
+# Presence detection with timing logic
+binary_sensor:
+  - platform: template
+    name: "Presence Detected"
+    id: presence
+    lambda: |-
+      float dist = id(distance_sensor).state;
+      // Valid range: 3cm - 60cm
+      return dist > 3 && dist < 60;
+    filters:
+      # Activation delay: 1.5 seconds of sustained presence
+      - delayed_on: 1500ms
+      # Timeout: 5 seconds after presence lost
+      - delayed_off: 5000ms
+    on_press:
+      then:
+        - light.turn_on: mirror_light
+        - logger.log: "Light ON - presence confirmed"
+    on_release:
+      then:
+        - light.turn_off: mirror_light
+        - logger.log: "Light OFF - presence timeout"
+
+# Web server for local control (optional)
+web_server:
+  port: 80

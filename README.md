@@ -1,16 +1,19 @@
 # Mirror Project
 
-Contactless bathroom mirror light system using ESP32 and MicroPython.
+Contactless bathroom mirror light system using ESP32.
 
-## Features
+## Two Approaches Available
 
-- Contactless activation via proximity sensor
-- Configurable activation delay and timeout
-- **Modular, reusable architecture** - sensors are decoupled and portable
-- Factory Pattern for sensor instantiation
-- Single-file deployment for production
+| Approach | Best For | Folder |
+|----------|----------|--------|
+| **MicroPython** | Learning, customization, offline | `src/` |
+| **ESPHome** | Production, Home Assistant, OTA | `esphome/` |
 
-## Quick Start
+See [firmware/README.md](firmware/README.md) for detailed comparison.
+
+---
+
+## Quick Start - MicroPython
 
 ```bash
 # Install dependencies
@@ -22,7 +25,19 @@ uv run python scripts/build.py
 uv run mpremote connect /dev/ttyUSB0 cp build/main.py :main.py
 ```
 
-## Project Architecture
+## Quick Start - ESPHome
+
+```bash
+pip install esphome
+cd esphome
+cp secrets.yaml.example secrets.yaml
+# Edit secrets.yaml with WiFi credentials
+esphome run mirror-light.yaml
+```
+
+---
+
+## MicroPython Architecture
 
 ```
 src/
@@ -49,11 +64,7 @@ src/
 # Copy hardware/sensors/ folder to your project, then:
 from hardware.sensors import SensorFactory
 
-# Create any registered sensor
 sensor = SensorFactory.create("vl53l0x", sda_pin=8, scl_pin=9)
-# or
-sensor = SensorFactory.create("ultrasonic", trigger_pin=13, echo_pin=12)
-
 distance = sensor.measure()  # Returns cm or -1 on error
 ```
 
@@ -65,8 +76,6 @@ distance = sensor.measure()  # Returns cm or -1 on error
 4. Import in `hardware/sensors/__init__.py`
 
 ## Development Mode
-
-Edit source files in `src/` with full IDE support and type hints.
 
 ```bash
 # Upload full structure (for debugging)
@@ -96,45 +105,30 @@ class TimingConfig:
 
 ## Production Mode
 
-Build combines all files into single `main.py` for deployment.
-
 ```bash
 # 1. Build single file
 uv run python scripts/build.py
 
 # 2. Upload to ESP32
 ./scripts/upload.sh /dev/ttyUSB0 prod
-
-# Or manually:
-uv run mpremote connect /dev/ttyUSB0 cp build/main.py :main.py
-uv run mpremote connect /dev/ttyUSB0 cp src/boot.py :boot.py
-uv run mpremote connect /dev/ttyUSB0 reset
 ```
 
 ### Enable Light Sleep (saves ~60% power)
-
-Edit `src/config.py`:
 
 ```python
 class PowerConfig:
     USE_LIGHT_SLEEP: bool = True  # Enable for production
 ```
 
-**Note**: Light sleep disables serial REPL. To reprogram, enter bootloader mode (hold BOOT + press EN).
+**Note**: Light sleep disables serial REPL. To reprogram, hold BOOT + press EN.
 
 ## Testing Without Hardware
 
-### Simulation Mode
-
 ```bash
+# Simulation
 uv run python scripts/simulate.py
-```
 
-Simulates sensor readings and state machine without ESP32.
-
-### Unit Tests
-
-```bash
+# Unit tests
 uv run pytest tests/ -v
 ```
 
@@ -150,18 +144,11 @@ usbipd bind --busid <BUSID>
 usbipd attach --wsl --busid <BUSID>
 ```
 
-**After each ESP32 reset**, reconnect:
-```powershell
-usbipd attach --wsl --busid <BUSID>
-```
-
-## Hardware
-
-See [HARDWARE.md](HARDWARE.md) for wiring and components.
-
 ## Documentation
 
 - [HARDWARE.md](HARDWARE.md) - Wiring and components
+- [firmware/README.md](firmware/README.md) - Firmware comparison
+- [esphome/README.md](esphome/README.md) - ESPHome guide
 - [docs/LEARNING.md](docs/LEARNING.md) - How everything works
 - [docs/POWER.md](docs/POWER.md) - Power consumption analysis
 - [docs/SHOPPING.md](docs/SHOPPING.md) - AliExpress shopping list

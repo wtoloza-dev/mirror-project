@@ -29,3 +29,7 @@ firmware/*.bin
 # Secrets
 .env
 secrets.py
+esphome/secrets.yaml
+
+# ESPHome build artifacts
+esphome/.esphome/
