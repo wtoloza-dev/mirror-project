@@ -26,7 +26,7 @@ class SensorConfig:
     # Sensor type: "vl53l0x" or "ultrasonic"
     SENSOR_TYPE: str = "vl53l0x"
 
-    MAX_DISTANCE_CM: float = 60.0
+    MAX_DISTANCE_CM: float = 40.0
     MIN_DISTANCE_CM: float = 3.0
 
     # Ultrasonic specific
@@ -37,7 +37,7 @@ class SensorConfig:
 class TimingConfig:
     """Timing parameters for activation and timeout."""
 
-    ACTIVATION_MS: int = 800   # Reduced: faster response
+    ACTIVATION_MS: int = 1000  # 1 second of sustained presence
     TIMEOUT_MS: int = 3000     # Reduced: quicker off (fade compensates)
     POLL_INTERVAL_MS: int = 100
 
