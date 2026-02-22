@@ -11,7 +11,7 @@ def setup():
 
 def test_idle_to_detecting():
     """Presence should start detection timer."""
-    from lib.presence import PresenceDetector, PresenceState
+    from core.presence import PresenceDetector, PresenceState
 
     detector = PresenceDetector(activation_ms=1000, timeout_ms=5000)
 
@@ -24,7 +24,7 @@ def test_idle_to_detecting():
 
 def test_detecting_to_active():
     """Sustained presence should activate."""
-    from lib.presence import PresenceDetector, PresenceState
+    from core.presence import PresenceDetector, PresenceState
 
     activated = []
 
@@ -53,7 +53,7 @@ def test_detecting_to_active():
 
 def test_active_to_timeout():
     """No presence should start timeout."""
-    from lib.presence import PresenceDetector, PresenceState
+    from core.presence import PresenceDetector, PresenceState
 
     detector = PresenceDetector(activation_ms=100, timeout_ms=5000)
 
@@ -69,7 +69,7 @@ def test_active_to_timeout():
 
 def test_timeout_to_idle():
     """Expired timeout should deactivate."""
-    from lib.presence import PresenceDetector, PresenceState
+    from core.presence import PresenceDetector, PresenceState
 
     deactivated = []
 
@@ -99,7 +99,7 @@ def test_timeout_to_idle():
 
 def test_interrupted_detection():
     """Interrupted presence should reset."""
-    from lib.presence import PresenceDetector, PresenceState
+    from core.presence import PresenceDetector, PresenceState
 
     detector = PresenceDetector(activation_ms=1000, timeout_ms=5000)
 
@@ -112,7 +112,7 @@ def test_interrupted_detection():
 
 def test_return_during_timeout():
     """Return during timeout should reactivate."""
-    from lib.presence import PresenceDetector, PresenceState
+    from core.presence import PresenceDetector, PresenceState
 
     detector = PresenceDetector(activation_ms=100, timeout_ms=5000)
 

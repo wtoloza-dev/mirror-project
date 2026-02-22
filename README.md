@@ -6,7 +6,8 @@ Contactless bathroom mirror light system using ESP32 and MicroPython.
 
 - Contactless activation via proximity sensor
 - Configurable activation delay and timeout
-- Modular architecture for maintainability
+- **Modular, reusable architecture** - sensors are decoupled and portable
+- Factory Pattern for sensor instantiation
 - Single-file deployment for production
 
 ## Quick Start
@@ -21,20 +22,55 @@ uv run python scripts/build.py
 uv run mpremote connect /dev/ttyUSB0 cp build/main.py :main.py
 ```
 
+## Project Architecture
+
+```
+src/
+├── config.py              # Configuration (pins, timing, sensor type)
+├── main.py                # Application entry point
+├── boot.py                # MicroPython boot sequence
+│
+├── hardware/              # Hardware abstraction (reusable)
+│   └── sensors/           # ← Copy this folder to any project
+│       ├── base.py        # Abstract base class (DistanceSensor)
+│       ├── factory.py     # Factory Pattern for sensor creation
+│       ├── ultrasonic.py  # HC-SR04, AJ-SR04M driver
+│       └── vl53l0x.py     # VL53L0X ToF driver
+│
+└── core/                  # Application logic
+    ├── light.py           # LED/relay controller
+    ├── presence.py        # State machine
+    └── power.py           # Sleep management
+```
+
+### Reusing Sensors in Other Projects
+
+```python
+# Copy hardware/sensors/ folder to your project, then:
+from hardware.sensors import SensorFactory
+
+# Create any registered sensor
+sensor = SensorFactory.create("vl53l0x", sda_pin=8, scl_pin=9)
+# or
+sensor = SensorFactory.create("ultrasonic", trigger_pin=13, echo_pin=12)
+
+distance = sensor.measure()  # Returns cm or -1 on error
+```
+
+### Adding New Sensors
+
+1. Create file in `hardware/sensors/` (e.g., `my_sensor.py`)
+2. Inherit from `DistanceSensor` and implement `measure()`
+3. Register with `@SensorFactory.register("my_sensor")`
+4. Import in `hardware/sensors/__init__.py`
+
 ## Development Mode
 
 Edit source files in `src/` with full IDE support and type hints.
 
 ```bash
-# Project structure
-src/
-├── config.py           # Configuration (pins, timing)
-├── main.py             # Application entry point
-└── lib/
-    ├── sensor.py       # Ultrasonic sensor driver
-    ├── light.py        # LED controller
-    ├── presence.py     # State machine
-    └── power.py        # Sleep management
+# Upload full structure (for debugging)
+./scripts/upload.sh /dev/ttyUSB0 dev
 
 # Run tests without hardware
 uv run pytest tests/
@@ -48,10 +84,10 @@ uv run python scripts/simulate.py
 Edit `src/config.py`:
 
 ```python
-class PinConfig:
-    TRIGGER: int = 13    # GPIO for sensor trigger
-    ECHO: int = 12       # GPIO for sensor echo
-    LED: int = 2         # GPIO for LED control
+class SensorConfig:
+    SENSOR_TYPE: str = "vl53l0x"  # or "ultrasonic"
+    MAX_DISTANCE_CM: float = 60.0
+    MIN_DISTANCE_CM: float = 3.0
 
 class TimingConfig:
     ACTIVATION_MS: int = 1500   # Time to activate (ms)
@@ -67,10 +103,11 @@ Build combines all files into single `main.py` for deployment.
 uv run python scripts/build.py
 
 # 2. Upload to ESP32
+./scripts/upload.sh /dev/ttyUSB0 prod
+
+# Or manually:
 uv run mpremote connect /dev/ttyUSB0 cp build/main.py :main.py
 uv run mpremote connect /dev/ttyUSB0 cp src/boot.py :boot.py
-
-# 3. Reset device
 uv run mpremote connect /dev/ttyUSB0 reset
 ```
 

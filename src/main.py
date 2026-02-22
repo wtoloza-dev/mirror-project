@@ -2,9 +2,41 @@
 Mirror light controller - Main application.
 
 Contactless bathroom mirror light using proximity sensor.
+Uses Factory Pattern for sensor creation - supports multiple sensor types.
 """
 from config import PinConfig, SensorConfig, TimingConfig, PowerConfig
-from lib import UltrasonicSensor, LightController, PresenceDetector, PowerManager
+from hardware.sensors import DistanceSensor, SensorFactory
+from core import LightController, PresenceDetector, PowerManager
+
+
+def create_sensor() -> DistanceSensor:
+    """
+    Create sensor instance using Factory Pattern.
+
+    Reads sensor type from configuration and creates
+    appropriate sensor with configured pins.
+
+    Returns:
+        Configured sensor instance implementing DistanceSensor.
+    """
+    sensor_type = SensorConfig.SENSOR_TYPE
+
+    if sensor_type == "vl53l0x":
+        return SensorFactory.create(
+            sensor_type,
+            sda_pin=PinConfig.SDA,
+            scl_pin=PinConfig.SCL,
+        )
+    elif sensor_type == "ultrasonic":
+        return SensorFactory.create(
+            sensor_type,
+            trigger_pin=PinConfig.TRIGGER,
+            echo_pin=PinConfig.ECHO,
+            timeout_us=SensorConfig.TIMEOUT_US,
+            sound_divisor=SensorConfig.SOUND_SPEED_DIVISOR,
+        )
+    else:
+        raise ValueError(f"Unknown sensor type: {sensor_type}")
 
 
 class MirrorLightApp:
@@ -12,37 +44,35 @@ class MirrorLightApp:
     Main application controller.
 
     Coordinates sensor, light, presence detection, and power management.
+    Uses dependency injection for sensor to support multiple types.
     """
 
-    def __init__(self) -> None:
-        """Initialize all components."""
-        self._sensor = UltrasonicSensor(
-            trigger_pin=PinConfig.TRIGGER,
-            echo_pin=PinConfig.ECHO,
-            timeout_us=SensorConfig.TIMEOUT_US,
-            sound_divisor=SensorConfig.SOUND_SPEED_DIVISOR,
-        )
+    def __init__(self, sensor: DistanceSensor) -> None:
+        """
+        Initialize application with injected sensor.
 
+        Args:
+            sensor: Distance sensor instance implementing DistanceSensor.
+        """
+        self._sensor = sensor
         self._light = LightController(pin=PinConfig.LED)
-
         self._presence = PresenceDetector(
             activation_ms=TimingConfig.ACTIVATION_MS,
             timeout_ms=TimingConfig.TIMEOUT_MS,
             on_activate=self._on_presence_start,
             on_deactivate=self._on_presence_end,
         )
-
         self._power = PowerManager(use_light_sleep=PowerConfig.USE_LIGHT_SLEEP)
 
     def _on_presence_start(self) -> None:
         """Callback when sustained presence detected."""
         self._light.on()
-        print(f"Light ON - presence confirmed")
+        print("Light ON - presence confirmed")
 
     def _on_presence_end(self) -> None:
         """Callback when presence timeout expired."""
         self._light.off()
-        print(f"Light OFF - presence timeout")
+        print("Light OFF - presence timeout")
 
     def run(self) -> None:
         """Main application loop."""
@@ -62,25 +92,29 @@ class MirrorLightApp:
             distance: Measured distance in cm.
 
         Returns:
-            True if valid presence detected.
+            True if valid presence detected within configured range.
         """
         if distance < 0:
+            return False
+        if distance < SensorConfig.MIN_DISTANCE_CM:
             return False
         return distance < SensorConfig.MAX_DISTANCE_CM
 
     def _print_config(self) -> None:
         """Print current configuration on startup."""
         print("Mirror Light Controller")
-        print(f"  Detection:  <{SensorConfig.MAX_DISTANCE_CM}cm")
-        print(f"  Activation: {TimingConfig.ACTIVATION_MS}ms")
-        print(f"  Timeout:    {TimingConfig.TIMEOUT_MS}ms")
+        print(f"  Sensor:      {self._sensor.sensor_type}")
+        print(f"  Range:       {SensorConfig.MIN_DISTANCE_CM}-{SensorConfig.MAX_DISTANCE_CM}cm")
+        print(f"  Activation:  {TimingConfig.ACTIVATION_MS}ms")
+        print(f"  Timeout:     {TimingConfig.TIMEOUT_MS}ms")
         print(f"  Light sleep: {PowerConfig.USE_LIGHT_SLEEP}")
         print("Ready.")
 
 
 def main() -> None:
     """Application entry point."""
-    app = MirrorLightApp()
+    sensor = create_sensor()
+    app = MirrorLightApp(sensor)
     app.run()
 
 

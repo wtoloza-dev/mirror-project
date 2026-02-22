@@ -8,15 +8,28 @@ All hardware pins and timing parameters in one place.
 class PinConfig:
     """GPIO pin assignments."""
 
+    # VL53L0X I2C pins
+    SDA: int = 8
+    SCL: int = 9
+
+    # Ultrasonic sensor pins (legacy/prototype)
     TRIGGER: int = 13
     ECHO: int = 12
-    LED: int = 2
+
+    # Output
+    LED: int = 4
 
 
 class SensorConfig:
-    """Ultrasonic sensor parameters."""
+    """Sensor parameters."""
 
-    MAX_DISTANCE_CM: float = 30.0
+    # Sensor type: "vl53l0x" or "ultrasonic"
+    SENSOR_TYPE: str = "vl53l0x"
+
+    MAX_DISTANCE_CM: float = 60.0
+    MIN_DISTANCE_CM: float = 3.0
+
+    # Ultrasonic specific
     TIMEOUT_US: int = 30000
     SOUND_SPEED_DIVISOR: float = 29.1
 

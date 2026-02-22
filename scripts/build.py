@@ -14,17 +14,26 @@ OUTPUT_FILE = BUILD_DIR / "main.py"
 
 FILES_ORDER = [
     "config.py",
-    "lib/sensor.py",
-    "lib/light.py",
-    "lib/presence.py",
-    "lib/power.py",
+    # Hardware - Sensors (portable to other projects)
+    "hardware/sensors/base.py",
+    "hardware/sensors/factory.py",
+    "hardware/sensors/ultrasonic.py",
+    "hardware/sensors/vl53l0x.py",
+    # Core - Application logic
+    "core/light.py",
+    "core/presence.py",
+    "core/power.py",
+    # Main application
     "main.py",
 ]
 
 IMPORTS_TO_REMOVE = [
     r"^from config import.*$",
-    r"^from lib import.*$",
-    r"^from lib\.\w+ import.*$",
+    r"^from hardware\.sensors import.*$",
+    r"^from hardware\.sensors\.\w+ import.*$",
+    r"^from core import.*$",
+    r"^from core\.\w+ import.*$",
+    r"^import hardware\.sensors\.\w+.*$",
 ]
 
 
