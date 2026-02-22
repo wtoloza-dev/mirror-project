@@ -37,13 +37,22 @@ class SensorConfig:
 class TimingConfig:
     """Timing parameters for activation and timeout."""
 
-    ACTIVATION_MS: int = 1500
-    TIMEOUT_MS: int = 5000
-    POLL_INTERVAL_MS: int = 150
+    ACTIVATION_MS: int = 800   # Reduced: faster response
+    TIMEOUT_MS: int = 3000     # Reduced: quicker off (fade compensates)
+    POLL_INTERVAL_MS: int = 100
+
+
+class LightConfig:
+    """Light/LED control settings."""
+
+    USE_FADE: bool = True           # Enable fade in/out effects
+    FADE_DURATION_MS: int = 600     # Duration of fade effect
+    FADE_STEPS: int = 50            # Smoothness (more = smoother)
+    PWM_FREQ: int = 1000            # PWM frequency in Hz
 
 
 class PowerConfig:
     """Power management settings."""
 
     USE_LIGHT_SLEEP: bool = True  # Saves ~60% power, disables REPL
-    SLEEP_DURATION_MS: int = 150
+    SLEEP_DURATION_MS: int = 100  # Match poll interval

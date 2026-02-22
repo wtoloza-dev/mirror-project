@@ -4,7 +4,7 @@ Mirror light controller - Main application.
 Contactless bathroom mirror light using proximity sensor.
 Uses Factory Pattern for sensor creation - supports multiple sensor types.
 """
-from config import PinConfig, SensorConfig, TimingConfig, PowerConfig
+from config import PinConfig, SensorConfig, TimingConfig, LightConfig, PowerConfig
 from hardware.sensors import DistanceSensor, SensorFactory
 from core import LightController, PresenceDetector, PowerManager
 
@@ -55,7 +55,13 @@ class MirrorLightApp:
             sensor: Distance sensor instance implementing DistanceSensor.
         """
         self._sensor = sensor
-        self._light = LightController(pin=PinConfig.LED)
+        self._light = LightController(
+            pin=PinConfig.LED,
+            use_fade=LightConfig.USE_FADE,
+            fade_duration_ms=LightConfig.FADE_DURATION_MS,
+            fade_steps=LightConfig.FADE_STEPS,
+            pwm_freq=LightConfig.PWM_FREQ,
+        )
         self._presence = PresenceDetector(
             activation_ms=TimingConfig.ACTIVATION_MS,
             timeout_ms=TimingConfig.TIMEOUT_MS,
@@ -107,6 +113,7 @@ class MirrorLightApp:
         print(f"  Range:       {SensorConfig.MIN_DISTANCE_CM}-{SensorConfig.MAX_DISTANCE_CM}cm")
         print(f"  Activation:  {TimingConfig.ACTIVATION_MS}ms")
         print(f"  Timeout:     {TimingConfig.TIMEOUT_MS}ms")
+        print(f"  Fade:        {LightConfig.USE_FADE} ({LightConfig.FADE_DURATION_MS}ms)")
         print(f"  Light sleep: {PowerConfig.USE_LIGHT_SLEEP}")
         print("Ready.")
 

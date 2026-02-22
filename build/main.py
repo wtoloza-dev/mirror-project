@@ -42,16 +42,25 @@ class SensorConfig:
 class TimingConfig:
     """Timing parameters for activation and timeout."""
 
-    ACTIVATION_MS: int = 1500
-    TIMEOUT_MS: int = 5000
-    POLL_INTERVAL_MS: int = 150
+    ACTIVATION_MS: int = 800   # Reduced: faster response
+    TIMEOUT_MS: int = 3000     # Reduced: quicker off (fade compensates)
+    POLL_INTERVAL_MS: int = 100
+
+
+class LightConfig:
+    """Light/LED control settings."""
+
+    USE_FADE: bool = True           # Enable fade in/out effects
+    FADE_DURATION_MS: int = 600     # Duration of fade effect
+    FADE_STEPS: int = 50            # Smoothness (more = smoother)
+    PWM_FREQ: int = 1000            # PWM frequency in Hz
 
 
 class PowerConfig:
     """Power management settings."""
 
     USE_LIGHT_SLEEP: bool = True  # Saves ~60% power, disables REPL
-    SLEEP_DURATION_MS: int = 150
+    SLEEP_DURATION_MS: int = 100  # Match poll interval
 
 
 
@@ -397,30 +406,52 @@ class VL53L0XSensor(DistanceSensor):
 # core/light.py
 # ============================================================
 
-from machine import Pin
+from machine import Pin, PWM
+from time import sleep_ms
 
 
 class LightController:
     """
-    Controls output for LED or light strip.
+    Controls output for LED or light strip with fade effects.
+
+    Supports both simple on/off and smooth PWM transitions.
 
     Attributes:
         pin: GPIO pin controlling the light.
         is_on: Current state of the light.
     """
 
-    def __init__(self, pin: int, inverted: bool = False) -> None:
+    MAX_DUTY = 65535  # 16-bit PWM resolution
+
+    def __init__(
+        self,
+        pin: int,
+        use_fade: bool = True,
+        fade_duration_ms: int = 500,
+        fade_steps: int = 50,
+        pwm_freq: int = 1000,
+    ) -> None:
         """
         Initialize light controller.
 
         Args:
             pin: GPIO number for light control.
-            inverted: If True, LOW turns light on (for some MOSFETs).
+            use_fade: If True, use smooth fade transitions.
+            fade_duration_ms: Total duration of fade effect.
+            fade_steps: Number of steps in fade (smoothness).
+            pwm_freq: PWM frequency in Hz.
         """
-        self._pin = Pin(pin, Pin.OUT)
-        self._inverted = inverted
+        self._use_fade = use_fade
+        self._fade_duration_ms = fade_duration_ms
+        self._fade_steps = fade_steps
         self._is_on = False
-        self.off()
+        self._current_duty = 0
+
+        if use_fade:
+            self._pwm = PWM(Pin(pin), freq=pwm_freq, duty_u16=0)
+        else:
+            self._pin = Pin(pin, Pin.OUT)
+            self._pin.off()
 
     @property
     def is_on(self) -> bool:
@@ -428,20 +459,62 @@ class LightController:
         return self._is_on
 
     def on(self) -> None:
-        """Turn light on."""
-        if self._inverted:
-            self._pin.off()
+        """Turn light on with optional fade in."""
+        if self._is_on:
+            return
+
+        if self._use_fade:
+            self._fade_to(self.MAX_DUTY)
         else:
             self._pin.on()
+
         self._is_on = True
 
     def off(self) -> None:
-        """Turn light off."""
-        if self._inverted:
-            self._pin.on()
+        """Turn light off with optional fade out."""
+        if not self._is_on:
+            return
+
+        if self._use_fade:
+            self._fade_to(0)
         else:
             self._pin.off()
+
         self._is_on = False
+
+    def _fade_to(self, target_duty: int) -> None:
+        """
+        Smoothly transition to target brightness.
+
+        Args:
+            target_duty: Target PWM duty cycle (0-65535).
+        """
+        start_duty = self._current_duty
+        step_delay = self._fade_duration_ms // self._fade_steps
+        duty_step = (target_duty - start_duty) // self._fade_steps
+
+        for i in range(self._fade_steps):
+            self._current_duty = start_duty + (duty_step * (i + 1))
+            self._pwm.duty_u16(max(0, min(self.MAX_DUTY, self._current_duty)))
+            sleep_ms(step_delay)
+
+        self._current_duty = target_duty
+        self._pwm.duty_u16(target_duty)
+
+    def set_brightness(self, percent: int) -> None:
+        """
+        Set brightness level (0-100%).
+
+        Args:
+            percent: Brightness percentage.
+        """
+        if not self._use_fade:
+            return
+
+        duty = int((percent / 100) * self.MAX_DUTY)
+        self._pwm.duty_u16(duty)
+        self._current_duty = duty
+        self._is_on = percent > 0
 
     def toggle(self) -> None:
         """Toggle light state."""
@@ -692,7 +765,13 @@ class MirrorLightApp:
             sensor: Distance sensor instance implementing DistanceSensor.
         """
         self._sensor = sensor
-        self._light = LightController(pin=PinConfig.LED)
+        self._light = LightController(
+            pin=PinConfig.LED,
+            use_fade=LightConfig.USE_FADE,
+            fade_duration_ms=LightConfig.FADE_DURATION_MS,
+            fade_steps=LightConfig.FADE_STEPS,
+            pwm_freq=LightConfig.PWM_FREQ,
+        )
         self._presence = PresenceDetector(
             activation_ms=TimingConfig.ACTIVATION_MS,
             timeout_ms=TimingConfig.TIMEOUT_MS,
@@ -744,6 +823,7 @@ class MirrorLightApp:
         print(f"  Range:       {SensorConfig.MIN_DISTANCE_CM}-{SensorConfig.MAX_DISTANCE_CM}cm")
         print(f"  Activation:  {TimingConfig.ACTIVATION_MS}ms")
         print(f"  Timeout:     {TimingConfig.TIMEOUT_MS}ms")
+        print(f"  Fade:        {LightConfig.USE_FADE} ({LightConfig.FADE_DURATION_MS}ms)")
         print(f"  Light sleep: {PowerConfig.USE_LIGHT_SLEEP}")
         print("Ready.")
 
